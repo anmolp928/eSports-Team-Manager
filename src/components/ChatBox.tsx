@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { MessageCircle, Send } from "lucide-react";
+import { supabase } from "../integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -60,22 +61,24 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
     setIsTyping(true);
     
     try {
-      setTimeout(() => {
-        const botResponse = generateBotResponse(input.trim());
-        const botMessage: Message = {
-          id: `bot-${Date.now()}`,
-          content: botResponse,
-          sender: "bot",
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-        setIsTyping(false);
-        
-        if (onSaveChat) {
-          onSaveChat([...messages, userMessage, botMessage]);
-        }
-      }, 1000);
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { content: input.trim() }
+      });
+
+      if (error) throw error;
+
+      const botMessage: Message = {
+        id: `bot-${Date.now()}`,
+        content: data.response,
+        sender: "bot",
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+      
+      if (onSaveChat) {
+        onSaveChat([...messages, userMessage, botMessage]);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -83,61 +86,9 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         description: "Failed to get a response. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsTyping(false);
     }
-  };
-
-  const generateBotResponse = (userInput: string): string => {
-    const userInputLower = userInput.toLowerCase();
-    
-    if (userInputLower.includes("roster") || userInputLower.includes("team composition")) {
-      return "Managing your roster effectively is crucial. Consider player roles, communication styles, and ensure you have substitutes ready. Would you like specific advice on roster construction for a particular game?";
-    }
-    
-    if (userInputLower.includes("practice") || userInputLower.includes("training")) {
-      return "Effective practice schedules are key to team success. I recommend structured sessions with clear goals, regular VOD reviews, and a balance between team play and individual skill development. How many hours is your team currently practicing?";
-    }
-    
-    if (userInputLower.includes("tournament") || userInputLower.includes("competition")) {
-      return "Tournament preparation requires both tactical and mental readiness. Make sure to research your opponents, prepare multiple strategies, and establish a healthy pre-match routine for your players. Which tournament are you preparing for?";
-    }
-    
-    if (userInputLower.includes("scout") || userInputLower.includes("recruit")) {
-      return "When scouting new talent, look beyond just skill metrics. Consider communication style, adaptability, mental fortitude, and team chemistry. Would you like me to suggest some scouting techniques for your specific game?";
-    }
-    
-    if (userInputLower.includes("conflict") || userInputLower.includes("team dynamic")) {
-      return "Team conflicts need addressing promptly but carefully. Create a safe environment for open dialogue, focus on specific behaviors rather than personalities, and work toward actionable solutions. Would you like specific conflict resolution strategies?";
-    }
-    
-    if (userInputLower.includes("schedule") || userInputLower.includes("planning")) {
-      return "Balancing practice, competitions, content creation, and rest is challenging. I recommend using a shared calendar system, planning at least a month ahead, and ensuring your players have dedicated rest periods to prevent burnout.";
-    }
-    
-    if (userInputLower.includes("sponsorship") || userInputLower.includes("funding")) {
-      return "Attracting sponsors requires demonstrating value beyond just competitive results. Build a strong social media presence, engage with your community, and prepare professional sponsorship decks with clear ROI metrics for potential partners.";
-    }
-    
-    if (userInputLower.includes("meta") || userInputLower.includes("patch") || userInputLower.includes("update")) {
-      return "Staying ahead of game changes is essential. Designate someone on your staff to track patch notes, have strategies ready for various metas, and practice flexibility in your team's approach to the game.";
-    }
-    
-    if (userInputLower.includes("mental health") || userInputLower.includes("burnout")) {
-      return "Player wellbeing should be a top priority. Implement regular check-ins, consider working with a sports psychologist, and create clear boundaries between game time and personal time for your team members.";
-    }
-    
-    if (userInputLower.includes("hello") || userInputLower.includes("hi ")) {
-      return `Hello! I'm your eSports team management assistant. I can help with roster decisions, practice schedules, tournament preparation, and more. What aspect of team management are you focusing on today?`;
-    }
-    
-    if (userInputLower.includes("weather") || 
-        userInputLower.includes("politics") || 
-        userInputLower.includes("movie") || 
-        userInputLower.includes("music")) {
-      return "I'm specifically designed to help with eSports team management. Can I assist you with something related to managing your team, like practice schedules, roster decisions, or tournament preparation?";
-    }
-    
-    return "As your eSports team management assistant, I can help with strategies for team development, scheduling, conflict resolution, and performance optimization. Could you provide more details about your specific management question?";
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
