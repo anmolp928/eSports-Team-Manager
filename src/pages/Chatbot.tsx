@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import ChatBox from "../components/ChatBox";
 import { saveChat } from "../services/chatService";
 import { useToast } from "@/hooks/use-toast";
+import { ApiSettings } from "@/components/ApiSettings";
 
 interface Message {
   id: string;
@@ -28,13 +29,16 @@ const Chatbot = () => {
       <main className="pt-20 min-h-screen flex flex-col">
         <div className="container mx-auto px-4 py-4 flex-1 flex flex-col">
           <div className="glass-morphism rounded-lg overflow-hidden flex-1 flex flex-col">
-            <div className="border-b border-white/10 p-4">
-              <h1 className="text-xl font-bold">
-                <span className="text-gradient">eSports</span> Team Manager Assistant
-              </h1>
-              <p className="text-sm text-white/70">
-                Ask for advice on team management, strategies, training, and more
-              </p>
+            <div className="border-b border-white/10 p-4 flex justify-between items-center">
+              <div>
+                <h1 className="text-xl font-bold">
+                  <span className="text-gradient">eSports</span> Team Manager Assistant
+                </h1>
+                <p className="text-sm text-white/70">
+                  Ask for advice on team management, strategies, training, and more
+                </p>
+              </div>
+              <ApiSettings />
             </div>
             
             <div className="flex-1 flex flex-col">
