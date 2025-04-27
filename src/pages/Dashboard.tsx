@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/toast/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { User, Edit, Save, X } from "lucide-react";
 
 const Dashboard = () => {

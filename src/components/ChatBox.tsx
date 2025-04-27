@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/toast/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { MessageCircle, Send } from "lucide-react";
 
@@ -34,7 +33,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   }, [messages]);
 
   useEffect(() => {
-    // Add welcome message when component mounts
     if (messages.length === 0) {
       setMessages([
         {
@@ -50,7 +48,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
-    // Add user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       content: input.trim(),
@@ -63,8 +60,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
     setIsTyping(true);
     
     try {
-      // Since we don't have a real API key, we'll simulate a response
-      // In a real app, you would make an API call to ChatGPT or another service
       setTimeout(() => {
         const botResponse = generateBotResponse(input.trim());
         const botMessage: Message = {
@@ -77,7 +72,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         setMessages(prev => [...prev, botMessage]);
         setIsTyping(false);
         
-        // If onSaveChat is provided, save the conversation
         if (onSaveChat) {
           onSaveChat([...messages, userMessage, botMessage]);
         }
@@ -93,11 +87,9 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
     }
   };
 
-  // Mock response generator - in a real app this would be replaced with an API call
   const generateBotResponse = (userInput: string): string => {
     const userInputLower = userInput.toLowerCase();
     
-    // Common eSports team management responses
     if (userInputLower.includes("roster") || userInputLower.includes("team composition")) {
       return "Managing your roster effectively is crucial. Consider player roles, communication styles, and ensure you have substitutes ready. Would you like specific advice on roster construction for a particular game?";
     }
@@ -138,7 +130,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
       return `Hello! I'm your eSports team management assistant. I can help with roster decisions, practice schedules, tournament preparation, and more. What aspect of team management are you focusing on today?`;
     }
     
-    // Default response for queries outside eSports management scope
     if (userInputLower.includes("weather") || 
         userInputLower.includes("politics") || 
         userInputLower.includes("movie") || 
@@ -146,7 +137,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
       return "I'm specifically designed to help with eSports team management. Can I assist you with something related to managing your team, like practice schedules, roster decisions, or tournament preparation?";
     }
     
-    // Generic fallback response
     return "As your eSports team management assistant, I can help with strategies for team development, scheduling, conflict resolution, and performance optimization. Could you provide more details about your specific management question?";
   };
 

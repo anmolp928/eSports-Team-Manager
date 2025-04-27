@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { getChatHistory, deleteChat } from "../services/chatService";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/toast/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,

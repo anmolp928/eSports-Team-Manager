@@ -3,7 +3,7 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 import ChatBox from "../components/ChatBox";
 import { saveChat } from "../services/chatService";
-import { useToast } from "@/components/ui/toast/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
