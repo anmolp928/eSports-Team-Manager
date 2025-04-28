@@ -15,9 +15,11 @@ serve(async (req) => {
   try {
     const { apiKey } = await req.json()
     
-    // Update the OpenAI API key in Supabase secrets
-    await Deno.env.set('OPENAI_API_KEY', apiKey)
-
+    // Instead of trying to set an environment variable directly,
+    // we'll store the API key in Supabase KV storage
+    const kv = await Deno.openKv();
+    await kv.set(["config", "openai_api_key"], apiKey);
+    
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

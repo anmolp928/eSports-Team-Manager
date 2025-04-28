@@ -15,10 +15,19 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
+    // Get the API key from KV storage, fallback to env variable if not found
+    const kv = await Deno.openKv();
+    const apiKeyEntry = await kv.get(["config", "openai_api_key"]);
+    const openAIApiKey = apiKeyEntry.value || Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not found');
+    }
+    
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

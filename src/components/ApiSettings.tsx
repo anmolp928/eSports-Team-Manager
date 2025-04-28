@@ -15,11 +15,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function ApiSettings() {
   const [newApiKey, setNewApiKey] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const updateApiKey = async () => {
+    if (!newApiKey.trim()) {
+      toast({
+        title: "Error",
+        description: "API key cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
     try {
-      const { error } = await supabase.functions.invoke("update-api-key", {
+      const { data, error } = await supabase.functions.invoke("update-api-key", {
         body: { apiKey: newApiKey }
       });
 
@@ -31,11 +43,14 @@ export function ApiSettings() {
       });
       setNewApiKey("");
     } catch (error) {
+      console.error("Error updating API key:", error);
       toast({
         title: "Error",
-        description: "Failed to update API key",
+        description: "Failed to update API key. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,8 +77,12 @@ export function ApiSettings() {
               placeholder="Enter your OpenAI API key"
             />
           </div>
-          <Button onClick={updateApiKey} className="w-full">
-            Update API Key
+          <Button 
+            onClick={updateApiKey} 
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Updating..." : "Update API Key"}
           </Button>
         </div>
       </DialogContent>
