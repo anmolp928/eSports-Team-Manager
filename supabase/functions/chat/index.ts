@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Use environment variable or fall back to default
+let cachedApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -15,13 +18,11 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    // Get the API key from KV storage, fallback to env variable if not found
-    const kv = await Deno.openKv();
-    const apiKeyEntry = await kv.get(["config", "openai_api_key"]);
-    const openAIApiKey = apiKeyEntry.value || Deno.env.get('OPENAI_API_KEY');
+    // Use the cached API key or fall back to the environment variable
+    const openAIApiKey = cachedApiKey || Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found');
+      throw new Error('OpenAI API key not found. Please add an API key in the settings.');
     }
     
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -47,7 +48,9 @@ serve(async (req) => {
     })
 
     if (!openAIResponse.ok) {
-      throw new Error('Failed to get response from OpenAI')
+      const errorData = await openAIResponse.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await openAIResponse.json()

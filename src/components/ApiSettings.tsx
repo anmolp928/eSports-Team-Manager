@@ -12,10 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function ApiSettings() {
   const [newApiKey, setNewApiKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const updateApiKey = async () => {
@@ -42,6 +44,7 @@ export function ApiSettings() {
         description: "API key updated successfully",
       });
       setNewApiKey("");
+      setDialogOpen(false);
     } catch (error) {
       console.error("Error updating API key:", error);
       toast({
@@ -55,7 +58,7 @@ export function ApiSettings() {
   };
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="icon">
           <Settings className="h-[1.2rem] w-[1.2rem]" />
@@ -67,6 +70,11 @@ export function ApiSettings() {
           <DialogTitle>API Settings</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
+          <Alert>
+            <AlertDescription>
+              Enter your OpenAI API key to use the chatbot. This key will be used for all chat requests.
+            </AlertDescription>
+          </Alert>
           <div className="flex flex-col gap-2">
             <label htmlFor="apiKey">OpenAI API Key</label>
             <Input

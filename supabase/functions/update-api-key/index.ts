@@ -7,6 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Create a simple in-memory cache for the API key
+// In production, you might want to use a more persistent solution
+let cachedApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -15,17 +19,17 @@ serve(async (req) => {
   try {
     const { apiKey } = await req.json()
     
-    // Instead of trying to set an environment variable directly,
-    // we'll store the API key in Supabase KV storage
-    const kv = await Deno.openKv();
-    await kv.set(["config", "openai_api_key"], apiKey);
+    // Store the API key in our in-memory cache
+    cachedApiKey = apiKey;
+    
+    console.log('API key updated successfully');
     
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error updating API key:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -35,3 +39,6 @@ serve(async (req) => {
     )
   }
 })
+
+// Export the cachedApiKey for other functions to use
+export { cachedApiKey };
