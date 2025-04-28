@@ -8,7 +8,8 @@ const corsHeaders = {
 }
 
 // Use environment variable or fall back to default
-let cachedApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+// Import the cachedApiKey from the update-api-key function
+import { cachedApiKey as apiKeyFromUpdateFunction } from '../update-api-key/index.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -18,11 +19,21 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    // Use the cached API key or fall back to the environment variable
-    const openAIApiKey = cachedApiKey || Deno.env.get('OPENAI_API_KEY');
+    // Use the imported cachedApiKey or fall back to the environment variable
+    const openAIApiKey = apiKeyFromUpdateFunction || Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found. Please add an API key in the settings.');
+      console.error('API key not found');
+      return new Response(
+        JSON.stringify({ 
+          error: 'API key not found. Please add an API key in the settings.',
+          errorType: 'NO_API_KEY' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
     
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -50,7 +61,33 @@ serve(async (req) => {
     if (!openAIResponse.ok) {
       const errorData = await openAIResponse.json();
       console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      
+      // Check for specific error types
+      let errorMessage = 'Error connecting to OpenAI API';
+      let errorType = 'API_ERROR';
+      
+      if (errorData.error) {
+        errorMessage = errorData.error.message;
+        
+        // Check for specific error types
+        if (errorData.error.type === 'insufficient_quota' || 
+            errorMessage.includes('exceeded your current quota')) {
+          errorType = 'QUOTA_EXCEEDED';
+          errorMessage = 'You have exceeded your OpenAI API quota. Please check your billing details or update your API key.';
+        } else if (errorData.error.type === 'invalid_api_key' ||
+                  errorMessage.includes('invalid api key')) {
+          errorType = 'INVALID_API_KEY';
+          errorMessage = 'The provided API key is invalid. Please update your API key in the settings.';
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({ error: errorMessage, errorType }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     const data = await openAIResponse.json()
@@ -63,7 +100,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        errorType: 'SERVER_ERROR'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

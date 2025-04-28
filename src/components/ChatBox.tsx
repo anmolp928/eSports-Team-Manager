@@ -1,10 +1,12 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, AlertCircle } from "lucide-react";
 import { supabase } from "../integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Message {
   id: string;
@@ -21,6 +23,7 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [apiError, setApiError] = useState<{message: string, type: string} | null>(null);
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -49,6 +52,9 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
+    // Clear any previous API errors when sending a new message
+    setApiError(null);
+    
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       content: input.trim(),
@@ -65,7 +71,27 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         body: { content: input.trim() }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase functions error:", error);
+        throw new Error(error.message);
+      }
+      
+      if (data.error) {
+        // Handle specific error types from the API
+        console.error("API error:", data.error);
+        setApiError({
+          message: data.error,
+          type: data.errorType || 'UNKNOWN'
+        });
+        
+        // Show appropriate toast based on error type
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
 
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
@@ -101,6 +127,33 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {apiError && apiError.type === 'QUOTA_EXCEEDED' && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              API quota exceeded. Please check your OpenAI account billing or update your API key in settings.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {apiError && apiError.type === 'INVALID_API_KEY' && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              The API key appears to be invalid. Please update your API key in settings.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {apiError && apiError.type === 'NO_API_KEY' && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No API key found. Please add your OpenAI API key in settings before using the chatbot.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {messages.map((message) => (
           <div
             key={message.id}
