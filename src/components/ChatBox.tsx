@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { MessageCircle, Send, AlertCircle } from "lucide-react";
 import { supabase } from "../integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 interface Message {
   id: string;
@@ -24,6 +25,7 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [apiError, setApiError] = useState<{message: string, type: string} | null>(null);
+  const [demoModeActive, setDemoModeActive] = useState(false);
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -93,6 +95,11 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         return;
       }
 
+      // Check if the response contains a demo indicator
+      if (data.response && data.response.includes("This is a demo response")) {
+        setDemoModeActive(true);
+      }
+
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
         content: data.response,
@@ -126,6 +133,15 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
 
   return (
     <div className="flex flex-col h-full">
+      {demoModeActive && (
+        <Alert variant="default" className="mb-4 bg-accent/20 border-accent">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium">Demo Mode Active</span>: This is using simulated responses. For full AI functionality, add your OpenAI API key in settings.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {apiError && apiError.type === 'QUOTA_EXCEEDED' && (
           <Alert variant="destructive" className="mb-4">
@@ -212,6 +228,13 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
           >
             <Send size={18} />
           </Button>
+        </div>
+        
+        <div className="mt-2 text-xs text-gray-400 flex justify-between">
+          <span>Press Enter to send, Shift+Enter for new line</span>
+          {demoModeActive && (
+            <span className="text-accent">Using demo mode</span>
+          )}
         </div>
       </div>
     </div>

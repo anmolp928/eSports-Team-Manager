@@ -7,8 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Use environment variable for the API key
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Hardcoded fallback API key for demonstration purposes
+// In production, you would use a more secure approach
+const DEMO_API_KEY = "demo-sk-1234567890";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -18,25 +19,29 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    // Use the environment variable API key
-    if (!openAIApiKey) {
-      console.error('API key not found');
+    // Try to get the API key from environment variable first
+    // If not available, fall back to the demo key
+    const apiKey = Deno.env.get('OPENAI_API_KEY') || DEMO_API_KEY;
+    
+    // Use mock response for demo key to make sure it works without a real key
+    if (apiKey === DEMO_API_KEY) {
+      console.log('Using demo mode with mock response');
+      // Simulate API processing time
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       return new Response(
         JSON.stringify({ 
-          error: 'API key not found. Please add an API key in the settings.',
-          errorType: 'NO_API_KEY' 
+          response: `This is a demo response to your query: "${content}"\n\nTo use the real AI, please add your OpenAI API key in the settings.` 
         }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
+    // For real API key, send request to OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

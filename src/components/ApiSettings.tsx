@@ -85,7 +85,7 @@ export function ApiSettings() {
         <div className="flex flex-col gap-4">
           <Alert>
             <AlertDescription>
-              Enter your OpenAI API key to use the chatbot. This key will be used for all chat requests.
+              Enter your OpenAI API key to use the chatbot. If you don't have an API key, you can still use the chatbot in demo mode with simulated responses.
             </AlertDescription>
           </Alert>
           <div className="flex flex-col gap-2">
@@ -95,7 +95,7 @@ export function ApiSettings() {
               type="password"
               value={newApiKey}
               onChange={(e) => setNewApiKey(e.target.value)}
-              placeholder="Enter your OpenAI API key"
+              placeholder="Enter your OpenAI API key (sk-...)"
             />
           </div>
           <Button 
@@ -105,6 +105,9 @@ export function ApiSettings() {
           >
             {isSubmitting ? "Updating..." : "Update API Key"}
           </Button>
+          <div className="text-xs text-gray-500 text-center">
+            Don't have an OpenAI API key? <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">Get one here</a>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
