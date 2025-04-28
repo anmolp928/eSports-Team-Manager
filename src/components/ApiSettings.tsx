@@ -37,7 +37,15 @@ export function ApiSettings() {
         body: { apiKey: newApiKey }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase functions error:", error);
+        throw new Error(error.message);
+      }
+      
+      if (data?.error) {
+        console.error("API error:", data.error);
+        throw new Error(data.error);
+      }
 
       toast({
         title: "Success",
@@ -45,6 +53,11 @@ export function ApiSettings() {
       });
       setNewApiKey("");
       setDialogOpen(false);
+      
+      // Refresh the page to ensure the new key is used
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("Error updating API key:", error);
       toast({

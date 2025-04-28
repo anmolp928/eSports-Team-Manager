@@ -7,10 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Create a simple in-memory cache for the API key
-// In production, you might want to use a more persistent solution
-let cachedApiKey = Deno.env.get('OPENAI_API_KEY') || '';
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -19,8 +15,49 @@ serve(async (req) => {
   try {
     const { apiKey } = await req.json()
     
-    // Store the API key in our in-memory cache
-    cachedApiKey = apiKey;
+    // Update the Supabase secret via API
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Missing Supabase URL or service role key');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server configuration error', 
+          errorType: 'CONFIG_ERROR' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Store the API key in Supabase secrets
+    const secretsResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/set_secret`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        'apikey': serviceRoleKey
+      },
+      body: JSON.stringify({
+        name: 'OPENAI_API_KEY',
+        value: apiKey
+      }),
+    });
+    
+    if (!secretsResponse.ok) {
+      const error = await secretsResponse.text();
+      console.error('Error updating secret:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update API key', errorType: 'SECRET_UPDATE_ERROR' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     console.log('API key updated successfully');
     
@@ -31,7 +68,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error updating API key:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, errorType: 'SERVER_ERROR' }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -39,6 +76,3 @@ serve(async (req) => {
     )
   }
 })
-
-// Export the cachedApiKey for other functions to use
-export { cachedApiKey };

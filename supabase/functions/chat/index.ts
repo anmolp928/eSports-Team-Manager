@@ -7,9 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Use environment variable or fall back to default
-// Import the cachedApiKey from the update-api-key function
-import { cachedApiKey as apiKeyFromUpdateFunction } from '../update-api-key/index.ts';
+// Use environment variable for the API key
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,9 +18,7 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    // Use the imported cachedApiKey or fall back to the environment variable
-    const openAIApiKey = apiKeyFromUpdateFunction || Deno.env.get('OPENAI_API_KEY');
-    
+    // Use the environment variable API key
     if (!openAIApiKey) {
       console.error('API key not found');
       return new Response(
