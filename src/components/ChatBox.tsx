@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +6,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { MessageCircle, Send, AlertCircle } from "lucide-react";
 import { supabase } from "../integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 interface Message {
   id: string;
@@ -29,6 +27,7 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [localApiKey, setLocalApiKey] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,6 +38,11 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
   }, [messages]);
 
   useEffect(() => {
+    const storedApiKey = localStorage.getItem('openai_api_key');
+    if (storedApiKey) {
+      setLocalApiKey(storedApiKey);
+    }
+    
     if (messages.length === 0) {
       setMessages([
         {
@@ -49,12 +53,11 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         }
       ]);
     }
-  }, [currentUser?.username]);
+  }, [currentUser?.username, messages.length]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
-    // Clear any previous API errors when sending a new message
     setApiError(null);
     
     const userMessage: Message = {
@@ -69,8 +72,13 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
     setIsTyping(true);
     
     try {
+      const payload: any = { content: input.trim() };
+      if (localApiKey) {
+        payload.clientApiKey = localApiKey;
+      }
+      
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { content: input.trim() }
+        body: payload
       });
 
       if (error) {
@@ -79,14 +87,12 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
       }
       
       if (data.error) {
-        // Handle specific error types from the API
         console.error("API error:", data.error);
         setApiError({
           message: data.error,
           type: data.errorType || 'UNKNOWN'
         });
         
-        // Show appropriate toast based on error type
         toast({
           title: "Error",
           description: data.error,
@@ -95,7 +101,6 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
         return;
       }
 
-      // Check if the response contains a demo indicator
       if (data.response && data.response.includes("This is a demo response")) {
         setDemoModeActive(true);
       }
@@ -138,6 +143,15 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <span className="font-medium">Demo Mode Active</span>: This is using simulated responses. For full AI functionality, add your OpenAI API key in settings.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {localApiKey && (
+        <Alert variant="default" className="mb-4 bg-green-500/20 border-green-500">
+          <AlertCircle className="h-4 w-4 text-green-500" />
+          <AlertDescription>
+            <span className="font-medium">Using Local API Key</span>: Your API key is stored in this browser.
           </AlertDescription>
         </Alert>
       )}
@@ -234,6 +248,9 @@ const ChatBox = ({ onSaveChat }: ChatBoxProps) => {
           <span>Press Enter to send, Shift+Enter for new line</span>
           {demoModeActive && (
             <span className="text-accent">Using demo mode</span>
+          )}
+          {localApiKey && (
+            <span className="text-green-500">Using local API key</span>
           )}
         </div>
       </div>

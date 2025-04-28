@@ -17,14 +17,16 @@ serve(async (req) => {
   }
 
   try {
-    const { content } = await req.json()
+    const requestData = await req.json();
+    const { content, clientApiKey } = requestData;
     
     // Try to get the API key from environment variable first
-    // If not available, fall back to the demo key
-    const apiKey = Deno.env.get('OPENAI_API_KEY') || DEMO_API_KEY;
+    // If not available, fall back to the client-provided key (from localStorage)
+    // If that's not available either, fall back to the demo key
+    const apiKey = Deno.env.get('OPENAI_API_KEY') || clientApiKey || DEMO_API_KEY;
     
     // Use mock response for demo key to make sure it works without a real key
-    if (apiKey === DEMO_API_KEY) {
+    if (apiKey === DEMO_API_KEY || !apiKey.startsWith('sk-')) {
       console.log('Using demo mode with mock response');
       // Simulate API processing time
       await new Promise(resolve => setTimeout(resolve, 500));
